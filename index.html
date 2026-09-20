@@ -1,0 +1,1637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IPO Fund Desk</title>
+<style>
+  :root{
+    --bg:#0B0D12;
+    --panel:#12151C;
+    --panel-alt:#171B24;
+    --panel-raised:#1B2029;
+    --border:#262B36;
+    --border-soft:#1D212B;
+    --text:#E7E9EE;
+    --text-dim:#8891A3;
+    --text-faint:#565E70;
+    --apply:#4FD1A5;
+    --apply-bg:rgba(79,209,165,0.12);
+    --wait:#F5A623;
+    --wait-bg:rgba(245,166,35,0.12);
+    --skip:#EF5F6B;
+    --skip-bg:rgba(239,95,107,0.12);
+    --info:#6C8CFF;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    font-size:14px;
+    line-height:1.45;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--info);color:#0B0D12;}
+  input,select,button,textarea{font-family:inherit;font-size:inherit;color:inherit;}
+  h1,h2,h3{margin:0;}
+  a{color:var(--info);}
+
+  /* ---------- top bar ---------- */
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 22px;border-bottom:1px solid var(--border);
+    background:linear-gradient(180deg,#101319,#0D0F14);
+    position:sticky;top:0;z-index:50;
+  }
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;letter-spacing:0.2px;}
+  .brand-mark{color:var(--apply);font-size:18px;}
+  .brand-sub{color:var(--text-faint);font-weight:400;font-size:12px;margin-left:8px;padding-left:8px;border-left:1px solid var(--border);}
+  .topbar-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+
+  .btn{
+    background:var(--panel-alt);border:1px solid var(--border);color:var(--text);
+    padding:8px 13px;border-radius:7px;cursor:pointer;font-size:12.5px;font-weight:600;
+    transition:border-color .15s,background .15s;white-space:nowrap;
+  }
+  .btn:hover{border-color:#3A4051;background:var(--panel-raised);}
+  .btn:focus-visible{outline:2px solid var(--info);outline-offset:1px;}
+  .btn-primary{background:var(--apply);color:#082018;border-color:var(--apply);}
+  .btn-primary:hover{background:#5EE0B4;border-color:#5EE0B4;}
+  .btn-ghost{background:transparent;}
+  .btn-danger{color:var(--skip);}
+  .btn-small{padding:5px 9px;font-size:11.5px;}
+  .file-btn{position:relative;overflow:hidden;}
+
+  /* ---------- layout ---------- */
+  .layout{display:grid;grid-template-columns:380px 1fr;gap:18px;padding:18px 22px 60px;align-items:start;}
+  @media (max-width:920px){ .layout{grid-template-columns:1fr;} }
+
+  .sidebar{display:flex;flex-direction:column;gap:16px;position:sticky;top:70px;}
+  @media (max-width:920px){ .sidebar{position:static;} }
+  .main{display:flex;flex-direction:column;gap:16px;min-width:0;}
+
+  .panel{
+    background:var(--panel);border:1px solid var(--border);border-radius:12px;
+    padding:16px 16px 18px;
+  }
+  .eyebrow{
+    font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;
+    color:var(--text-dim);margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;
+  }
+  .eyebrow .count-badge{
+    background:var(--panel-alt);border:1px solid var(--border);color:var(--text-dim);
+    padding:1px 7px;border-radius:20px;font-size:10.5px;letter-spacing:0;font-weight:600;
+  }
+
+  /* ---------- form elements ---------- */
+  label.field{display:block;margin-bottom:11px;}
+  label.field span.label-text{display:block;font-size:11.5px;color:var(--text-dim);margin-bottom:5px;font-weight:600;}
+  .field input[type=text],.field input[type=number],.field input[type=date]{
+    width:100%;background:var(--panel-alt);border:1px solid var(--border);color:var(--text);
+    padding:8px 10px;border-radius:7px;font-family:var(--mono);font-size:13px;
+  }
+  .field input:focus{outline:none;border-color:var(--info);}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+
+  .strategy-toggle{display:flex;gap:6px;background:var(--panel-alt);padding:4px;border-radius:9px;border:1px solid var(--border);}
+  .toggle-btn{flex:1;background:transparent;border:none;color:var(--text-dim);padding:8px 6px;border-radius:6px;font-size:11.5px;font-weight:700;cursor:pointer;}
+  .toggle-btn.active{background:var(--panel-raised);color:var(--text);box-shadow:0 0 0 1px var(--border) inset;}
+
+  fieldset.category-block{
+    border:1px solid var(--border-soft);border-radius:9px;padding:10px 11px 11px;margin-bottom:9px;
+  }
+  fieldset.category-block legend{
+    font-size:11.5px;font-weight:700;color:var(--text);padding:0 4px;display:flex;align-items:center;gap:7px;
+  }
+  .cat-check{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--text-dim);font-weight:600;cursor:pointer;user-select:none;}
+  .cat-check input{accent-color:var(--apply);width:14px;height:14px;}
+  fieldset.category-block .row2{margin-top:8px;}
+  fieldset.category-block label.field{margin-bottom:0;}
+  .amt-preview{font-family:var(--mono);font-size:11px;color:var(--text-faint);margin-top:7px;}
+  .rec-table-wrap{overflow-x:auto;}
+  .sync-status{font-size:11.5px;color:var(--text-dim);display:flex;align-items:center;gap:7px;padding:0 2px;white-space:nowrap;}
+  .sync-dot{width:7px;height:7px;border-radius:50%;display:inline-block;flex-shrink:0;}
+  .sync-dot.off{background:var(--text-faint);}
+  .sync-dot.ok{background:var(--apply);}
+  .sync-dot.warn{background:var(--wait);}
+  .sync-dot.err{background:var(--skip);}
+  .topbar-divider{width:1px;height:20px;background:var(--border);margin:0 2px;}
+
+  .form-actions{display:flex;gap:8px;margin-top:4px;}
+  .form-actions .btn{flex:1;}
+
+  /* ---------- pipeline cards ---------- */
+  .pipeline-list{display:flex;flex-direction:column;gap:9px;max-height:420px;overflow-y:auto;padding-right:2px;}
+  .empty-note{color:var(--text-faint);font-size:12.5px;padding:10px 2px;line-height:1.6;}
+  .pipe-card{border:1px solid var(--border);background:var(--panel-alt);border-radius:9px;padding:10px 11px;}
+  .pipe-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+  .pipe-name{font-weight:700;font-size:13px;}
+  .pipe-meta{color:var(--text-faint);font-size:11px;font-family:var(--mono);margin-top:2px;}
+  .pipe-badges{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;}
+  .pipe-badge{font-family:var(--mono);font-size:10.5px;padding:2px 7px;border-radius:5px;border:1px solid var(--border);color:var(--text-dim);}
+  .pipe-badge.on{color:var(--text);border-color:#37404F;}
+  .pipe-actions{display:flex;gap:6px;margin-top:9px;}
+
+  /* ---------- stat strip ---------- */
+  .stat-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
+  @media (max-width:1180px){ .stat-strip{grid-template-columns:repeat(2,1fr);} }
+  .stat-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:13px 14px;}
+  .stat-label{font-size:10.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.8px;font-weight:700;}
+  .stat-value{font-family:var(--mono);font-size:19px;font-weight:600;margin-top:6px;}
+  .stat-sub{font-size:11px;color:var(--text-faint);margin-top:3px;}
+  .stat-value.pos{color:var(--apply);}
+  .stat-value.neg{color:var(--skip);}
+
+  /* ---------- timeline ---------- */
+  .timeline-wrap{overflow-x:auto;}
+  .timeline-axis{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10.5px;color:var(--text-faint);padding:0 2px 8px;border-bottom:1px solid var(--border-soft);margin-bottom:10px;}
+  .timeline-row{display:grid;grid-template-columns:190px 1fr;align-items:center;gap:10px;height:32px;}
+  .timeline-row-label{font-size:11.5px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .timeline-row-label b{color:var(--text);}
+  .timeline-track{position:relative;height:18px;background:var(--panel-alt);border-radius:5px;}
+  .timeline-bar{position:absolute;top:0;bottom:0;border-radius:5px;min-width:6px;}
+  .timeline-bar.v-apply{background:linear-gradient(90deg,var(--apply),#3fb98d);}
+  .timeline-bar.v-skip{background:repeating-linear-gradient(135deg,#3A2A2E,#3A2A2E 4px,#33262A 4px,#33262A 8px);border:1px solid #4A3238;}
+  .timeline-bar.v-wait{background:linear-gradient(90deg,var(--wait),#d18f1f);opacity:.55;}
+  .timeline-today{position:absolute;top:-5px;bottom:-5px;width:2px;background:var(--info);z-index:2;}
+  .timeline-today::after{content:'today';position:absolute;top:-15px;left:-14px;font-size:9px;color:var(--info);font-family:var(--mono);}
+  .timeline-empty{color:var(--text-faint);font-size:12.5px;padding:14px 2px;}
+  .legend{display:flex;gap:16px;margin-top:12px;font-size:11px;color:var(--text-dim);flex-wrap:wrap;}
+  .legend-dot{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:-1px;}
+
+  /* ---------- recommendations table ---------- */
+  .rec-group{margin-bottom:18px;}
+  .rec-group:last-child{margin-bottom:0;}
+  .rec-group-title{display:flex;align-items:center;gap:9px;margin-bottom:9px;}
+  .rec-group-title .pill{font-size:10.5px;}
+  .rec-group-title span.n{color:var(--text-faint);font-size:11.5px;}
+  table.rec-table{width:100%;border-collapse:collapse;}
+  table.rec-table th{
+    text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:0.6px;color:var(--text-faint);
+    font-weight:700;padding:6px 10px;border-bottom:1px solid var(--border);
+  }
+  table.rec-table td{padding:9px 10px;border-bottom:1px solid var(--border-soft);font-size:12.5px;vertical-align:top;}
+  table.rec-table tr:last-child td{border-bottom:none;}
+  table.rec-table td.num{font-family:var(--mono);}
+  table.rec-table td.reason{color:var(--text-dim);font-size:11.5px;max-width:230px;}
+  .ipo-cell b{display:block;}
+  .ipo-cell span{color:var(--text-faint);font-size:11px;}
+
+  .pill{
+    display:inline-flex;align-items:center;gap:5px;font-weight:700;font-size:11px;
+    padding:3px 9px;border-radius:20px;
+  }
+  .pill.apply{background:var(--apply-bg);color:var(--apply);}
+  .pill.wait{background:var(--wait-bg);color:var(--wait);}
+  .pill.skip{background:var(--skip-bg);color:var(--skip);}
+
+  .account-selector{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+  .account-selector label{font-size:11.5px;color:var(--text-dim);font-weight:700;text-transform:uppercase;letter-spacing:0.6px;}
+  .account-selector select{
+    background:var(--panel-alt);border:1px solid var(--border);color:var(--text);
+    padding:7px 11px;border-radius:7px;font-family:var(--mono);font-size:12.5px;font-weight:600;cursor:pointer;
+  }
+  .account-selector select:focus{outline:none;border-color:var(--info);}
+  td.priority-cell{font-family:var(--mono);font-weight:700;color:var(--text);}
+
+  .methodology{color:var(--text-faint);font-size:11.5px;line-height:1.7;}
+  .methodology summary{cursor:pointer;color:var(--text-dim);font-weight:700;font-size:11.5px;text-transform:uppercase;letter-spacing:0.6px;}
+  .methodology ul{margin:10px 0 0;padding-left:18px;}
+  .methodology li{margin-bottom:6px;}
+
+  ::-webkit-scrollbar{width:9px;height:9px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:#2A303C;border-radius:6px;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand"><span class="brand-mark">&#9670;</span>IPO Fund Desk<span class="brand-sub">capital scheduler, not a stock picker</span></div>
+  <div class="topbar-actions">
+    <span class="sync-status" id="syncStatus"><span class="sync-dot off" id="syncDot"></span><span id="syncText">Not connected</span></span>
+    <button class="btn btn-primary" id="btnNewFile">New data file</button>
+    <button class="btn" id="btnOpenFile">Open data file</button>
+    <button class="btn" id="btnReconnectFile" style="display:none;">Reconnect data file</button>
+    <button class="btn btn-ghost" id="btnDisconnectFile" style="display:none;">Disconnect</button>
+    <span class="topbar-divider"></span>
+    <button class="btn" id="btnSample">Load sample data</button>
+    <button class="btn" id="btnExport">Export data</button>
+    <label class="btn file-btn">Import data<input type="file" id="importFile" accept="application/json" style="position:absolute;inset:0;opacity:0;cursor:pointer;"></label>
+    <button class="btn btn-ghost btn-danger" id="btnClear">Clear all</button>
+  </div>
+</div>
+
+<div class="layout">
+
+  <aside class="sidebar">
+
+    <section class="panel">
+      <h2 class="eyebrow">Capital</h2>
+      <label class="field">
+        <span class="label-text">Total funds available (₹)</span>
+        <input type="number" id="totalFunds" min="0" step="1" placeholder="e.g. 500000">
+      </label>
+      <label class="field">
+        <span class="label-text">Number of accounts</span>
+        <input type="number" id="numAccounts" min="1" step="1" value="1">
+      </label>
+      <label class="field">
+        <span class="label-text">Risk Tolerance Percent</span>
+        <input type="number" id="riskTolerance" min="0" max="100" step="0.1" value="0" placeholder="e.g. 5">
+      </label>
+      <span class="label-text" style="margin-bottom:6px;">Optimizer strategy</span>
+      <div class="strategy-toggle">
+        <button type="button" class="toggle-btn active" data-mode="profit">Maximize profit</button>
+        <button type="button" class="toggle-btn" data-mode="diversify">Diversify applications</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 class="eyebrow">Add IPO to pipeline</h2>
+      <form id="ipoForm">
+        <input type="hidden" id="editingId" value="">
+        <label class="field">
+          <span class="label-text">IPO name</span>
+          <input type="text" id="ipoName" placeholder="e.g. Acme Fintech Ltd" required>
+        </label>
+        <div class="row2">
+          <label class="field">
+            <span class="label-text">Price per share (₹)</span>
+            <input type="number" id="ipoPrice" min="0" step="0.01" required>
+          </label>
+          <label class="field">
+            <span class="label-text">GMP per share (₹)</span>
+            <input type="number" id="ipoGmp" step="0.01" placeholder="can be negative">
+          </label>
+        </div>
+        <div class="row2">
+          <label class="field">
+            <span class="label-text">Bid opens</span>
+            <input type="date" id="bidOpen">
+          </label>
+          <label class="field">
+            <span class="label-text">Bid closes</span>
+            <input type="date" id="bidClose">
+          </label>
+        </div>
+        <div class="row2">
+          <label class="field">
+            <span class="label-text">Your planned apply date</span>
+            <input type="date" id="applyDate">
+          </label>
+          <label class="field">
+            <span class="label-text">Allotment date</span>
+            <input type="date" id="allotDate">
+          </label>
+        </div>
+        <label class="field">
+          <span class="label-text">Listing date (required — used to auto-retire this IPO)</span>
+          <input type="date" id="listDate" required>
+        </label>
+
+        <fieldset class="category-block" data-cat="retail">
+          <legend><label class="cat-check"><input type="checkbox" id="retail_int"> Retail</label></legend>
+          <div class="row2">
+            <label class="field"><span class="label-text">Number of shares</span><input type="number" id="retail_shares" min="0" step="1"></label>
+            <label class="field"><span class="label-text">Subscription (x)</span><input type="number" id="retail_sub" min="0" step="0.01" placeholder="leave blank if unknown"></label>
+          </div>
+          <div class="amt-preview" id="retail_amtPreview">Enter shares to see amount</div>
+        </fieldset>
+
+        <fieldset class="category-block" data-cat="shni">
+          <legend><label class="cat-check"><input type="checkbox" id="shni_int"> sHNI (small HNI)</label></legend>
+          <div class="row2">
+            <label class="field"><span class="label-text">Number of shares</span><input type="number" id="shni_shares" min="0" step="1"></label>
+            <label class="field"><span class="label-text">Subscription (x)</span><input type="number" id="shni_sub" min="0" step="0.01" placeholder="leave blank if unknown"></label>
+          </div>
+          <div class="amt-preview" id="shni_amtPreview">Enter shares to see amount</div>
+        </fieldset>
+
+        <fieldset class="category-block" data-cat="bhni">
+          <legend><label class="cat-check"><input type="checkbox" id="bhni_int"> bHNI (big HNI)</label></legend>
+          <div class="row2">
+            <label class="field"><span class="label-text">Number of shares</span><input type="number" id="bhni_shares" min="0" step="1"></label>
+            <label class="field"><span class="label-text">Subscription (x)</span><input type="number" id="bhni_sub" min="0" step="0.01" placeholder="leave blank if unknown"></label>
+          </div>
+          <div class="amt-preview" id="bhni_amtPreview">Enter shares to see amount</div>
+        </fieldset>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary" id="submitBtn">Add IPO to pipeline</button>
+          <button type="button" class="btn btn-ghost" id="cancelEditBtn" style="display:none;">Cancel edit</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2 class="eyebrow">Pipeline <span class="count-badge" id="pipelineCount">0</span></h2>
+      <div class="pipeline-list" id="pipelineList"></div>
+    </section>
+
+  </aside>
+
+  <main class="main">
+
+    <section class="stat-strip" id="statStrip"></section>
+
+    <section class="panel">
+      <h2 class="eyebrow">Fund-lock schedule</h2>
+      <div class="timeline-wrap">
+        <div id="timelineAxis" class="timeline-axis"></div>
+        <div id="timeline"></div>
+      </div>
+      <div class="legend">
+        <span><span class="legend-dot" style="background:var(--apply);"></span>Apply</span>
+        <span><span class="legend-dot" style="background:var(--wait);opacity:.7;"></span>Waiting on data</span>
+        <span><span class="legend-dot" style="background:#3A2A2E;border:1px solid #4A3238;"></span>Skip</span>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 class="eyebrow">Recommendations</h2>
+      <div id="recommendations"></div>
+    </section>
+
+    <section class="panel">
+      <details class="methodology">
+        <summary>How this works</summary>
+        <ul>
+          <li><b>Amount applied</b> is calculated for you as number of shares &times; price &mdash; you only enter shares and price.</li>
+          <li><b>Profit if allotted</b> = number of shares &times; GMP. Allotment is treated as binary, not prorata: you either get the full lot and this full profit, or you get nothing and the profit is zero. Every profit figure shown on this page &mdash; including the stat card and every table &mdash; is this un-averaged, full-payoff number, assuming that particular application is allotted.</li>
+          <li><b>Allotment odds</b> is approximated as min(1, 1 &divide; subscription) &mdash; roughly your chance of winning the lottery draw at that oversubscription level. These odds are used only behind the scenes when you choose Diversify applications.</li>
+          <li><b>Funds are treated as blocked</b> from your planned apply date through and including the allotment date, and only become free again starting the day after allotment.</li>
+          <li><b>Number of accounts</b> lets the scheduler split your applications across separate demat accounts. A single account can choose only one category per IPO, while different accounts can independently apply &mdash; even to the same IPO/category &mdash; against one shared fund pool.</li>
+          <li><b>The Recommendations panel</b> shows one account's queue at a time (use the dropdown when you have more than one account), numbered in the order you'd actually submit them as funds free up. Applications that don't make it into any account are shown separately as Skip.</li>
+          <li><b>The optimizer</b> uses maximum profit if allotted in Maximize profit mode, and balances profit potential with allotment chances in Diversify applications mode. It respects the shared day-by-day fund cap and the rule that each account can choose at most one category for any IPO. Overlapping IPOs within the same account are allowed.</li>
+          <li>This is a decision-support estimate, not investment advice. Real allotment mechanics (lot-based draws, cut-off pricing, category re-shuffling) are simplified.</li>
+        </ul>
+      </details>
+    </section>
+
+  </main>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ============================= STATE ============================= */
+  var STATE = {
+    totalFunds: 0,
+    numAccounts: 1,
+    riskTolerance: 0,
+    mode: 'profit', // 'profit' | 'diversify'
+    ipos: []        // {id,name,price,gmp,bidOpen,bidClose,applyDate,allotDate,listDate,cats:{retail:{interested,shares,sub},shni:{...},bhni:{...}}}
+  };
+
+  var CATS = [ ['retail','Retail'], ['shni','sHNI'], ['bhni','bHNI'] ];
+
+  var viewingAccount = 0; // which account's recommendations are shown — UI-only, not persisted/saved
+
+  var fileHandle = null;              // FileSystemFileHandle currently connected, or null
+  var fileSyncStatus = 'disconnected'; // 'disconnected' | 'connected' | 'needs-permission' | 'error'
+  var saveDebounceTimer = null;
+
+  /* ============================= HELPERS ============================= */
+  function $(id){ return document.getElementById(id); }
+  function uid(){ return 'ipo_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+  function toTs(dateStr){
+    if(!dateStr) return null;
+    var t = new Date(dateStr + 'T00:00:00').getTime();
+    return isNaN(t) ? null : t;
+  }
+  function fmtDate(ts){
+    if(!ts) return '—';
+    return new Date(ts).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+  }
+  function fmtINR(n){
+    if(n===null || n===undefined || isNaN(n)) return '—';
+    var sign = n < 0 ? '-' : '';
+    return sign + '₹' + Math.round(Math.abs(n)).toLocaleString('en-IN');
+  }
+  function fmtPct(n){
+    if(n===null || n===undefined || isNaN(n)) return '—';
+    return (n>=0?'+':'') + n.toFixed(1) + '%';
+  }
+  function dayMs(){ return 86400000; }
+  function daysBetween(a,b){ return Math.max(1, Math.round((b-a)/dayMs())); }
+  function todayTs(){
+    var d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  }
+  function addDays(ts, n){ return ts + n*dayMs(); }
+  function tsToInputVal(ts){
+    var d = new Date(ts);
+    var m = ('0'+(d.getMonth()+1)).slice(-2), day = ('0'+d.getDate()).slice(-2);
+    return d.getFullYear()+'-'+m+'-'+day;
+  }
+
+  /* ============================= CANDIDATE BUILDING ============================= */
+  // A "candidate" is one (IPO, category) pair the user marked as interested.
+  // Allotment is treated as binary (lottery), not prorata: profitIfAllotted is the
+  // full, un-averaged payoff. Internal odds-weighted scoring is used only where the
+  // selected optimizer mode requires it; it is never part of the user-facing display.
+  function buildCandidates(){
+    var out = [];
+    STATE.ipos.forEach(function(ipo){
+      var applyTs = toTs(ipo.applyDate) || toTs(ipo.bidOpen);
+      var allotTs = toTs(ipo.allotDate);
+      var listTs = toTs(ipo.listDate);
+
+      CATS.forEach(function(pair){
+        var key = pair[0], label = pair[1];
+        var c = ipo.cats[key];
+        if(!c || !c.interested || !c.shares) return;
+
+        var amount = c.shares * ipo.price;
+        var profitIfAllotted = c.shares * ipo.gmp;
+        var gmpPercent = ipo.price > 0 ? (ipo.gmp * 100) / ipo.price : null;
+
+        var hasSub = c.sub !== null && c.sub !== '' && !isNaN(c.sub);
+        var subNum = hasSub ? parseFloat(c.sub) : null;
+        var hasDates = !!(applyTs && allotTs);
+        var evaluable = hasSub && hasDates;
+
+        var fillFraction = null, expectedValue = null, blockedDays = null, annualizedEdge = null;
+        if(evaluable){
+          fillFraction = Math.min(1, 1/Math.max(subNum, 0.0001));
+          expectedValue = fillFraction * profitIfAllotted;
+          // funds free up the day AFTER allotment, not on the allotment day itself
+          blockedDays = daysBetween(applyTs, allotTs) + 1;
+          annualizedEdge = amount > 0 ? (expectedValue / (amount * blockedDays)) * 365 * 100 : null;
+        }
+
+        out.push({
+          id: ipo.id + '__' + key,
+          ipoId: ipo.id, ipoName: ipo.name,
+          catKey: key, catLabel: label,
+          shares: c.shares, amount: amount,
+          gmpPercent: gmpPercent,
+          subscription: subNum, hasSub: hasSub,
+          applyTs: applyTs, allotTs: allotTs, listTs: listTs,
+          bidCloseTs: toTs(ipo.bidClose),
+          hasDates: hasDates,
+          evaluable: evaluable,
+          fillFraction: fillFraction,
+          profitIfAllotted: profitIfAllotted, expectedValue: expectedValue,
+          blockedDays: blockedDays, annualizedEdge: annualizedEdge
+        });
+      });
+    });
+    return out;
+  }
+
+  /* ============================= SCHEDULING / OPTIMIZER ============================= */
+  // Funds are blocked from applyTs through and including allotTs, and become free
+  // starting the day after allotment. The optimizer therefore enforces the shared
+  // fund ceiling at every relevant application-start date.
+  //
+  // IMPORTANT MODEL RULES
+  // 1) Funds are shared across all accounts.
+  // 2) Overlapping IPOs are allowed in the same account.
+  // 3) For a given IPO, each account may choose at most one category.
+  // 4) Different accounts may independently choose the same IPO/category.
+  // 5) Profit mode maximizes TOTAL profit-if-allotted.
+  // 6) Diversify mode uses internal profit × allotment-probability scoring, with
+  //    higher allotment probability preferred when the internal score is tied.
+
+  function isFeasibleFundsOnly(subset, totalFunds){
+    if(subset.length === 0) return true;
+    var points = [];
+    subset.forEach(function(c){
+      if(c.applyTs && points.indexOf(c.applyTs) === -1) points.push(c.applyTs);
+    });
+    for(var p=0;p<points.length;p++){
+      var day = points[p], sum = 0;
+      for(var i=0;i<subset.length;i++){
+        var c = subset[i];
+        if(c.applyTs <= day && day <= c.allotTs) sum += c.amount;
+      }
+      if(sum > totalFunds + 1e-6) return false;
+    }
+    return true;
+  }
+
+  function isFeasibleSingleAccount(subset, totalFunds){
+    if(subset.length === 0) return true;
+    var seenIpo = {};
+    for(var s=0;s<subset.length;s++){
+      if(seenIpo[subset[s].ipoId]) return false;
+      seenIpo[subset[s].ipoId] = true;
+    }
+    return isFeasibleFundsOnly(subset, totalFunds);
+  }
+
+  function candidateScore(c, mode){
+    if(!c) return 0;
+    if(mode === 'diversify'){
+      return isFinite(c.expectedValue) ? c.expectedValue : 0;
+    }
+    return isFinite(c.profitIfAllotted) ? c.profitIfAllotted : 0;
+  }
+
+  function candidateTieScore(c){
+    return (c && isFinite(c.fillFraction)) ? c.fillFraction : 0;
+  }
+
+  function solutionTieScore(solution){
+    if(!solution || !solution.options) return 0;
+    return solution.options.reduce(function(sum,o){ return sum + (o.odds || 0); },0);
+  }
+
+  function solutionProfitIfAllotted(solution){
+    if(!solution || !solution.options) return 0;
+    return solution.options.reduce(function(sum,o){ return sum + (o.profitIfAllotted || 0); },0);
+  }
+
+  function makeDatePoints(list){
+    var points = [];
+    list.forEach(function(c){
+      if(c.applyTs && points.indexOf(c.applyTs) === -1) points.push(c.applyTs);
+    });
+    points.sort(function(a,b){ return a-b; });
+    return points;
+  }
+
+  function makeDateIndex(points){
+    var idx = {};
+    points.forEach(function(p,i){ idx[String(p)] = i; });
+    return idx;
+  }
+
+  function intervalDeltas(c, points, dateIndex){
+    var deltas = [];
+    for(var i=0;i<points.length;i++){
+      var day = points[i];
+      if(c.applyTs <= day && day <= c.allotTs) deltas.push([i,c.amount]);
+    }
+    return deltas;
+  }
+
+  function addDeltas(usage, deltas, multiplier){
+    for(var i=0;i<deltas.length;i++) usage[deltas[i][0]] += deltas[i][1] * multiplier;
+  }
+
+  function deltasFit(usage, deltas, multiplier, totalFunds){
+    for(var i=0;i<deltas.length;i++){
+      var next = usage[deltas[i][0]] + deltas[i][1] * multiplier;
+      if(next > totalFunds + 1e-6) return false;
+    }
+    return true;
+  }
+
+  function betterSolution(a,b,mode){
+    if(!b) return true;
+    if(Math.abs(a.profit-b.profit) > 1e-9) return a.profit > b.profit;
+
+    // In Diversify Applications mode, an equal internal score is resolved in
+    // favor of the stronger allotment odds. Full profit is the next tie-breaker.
+    if(mode === 'diversify'){
+      var aOdds = solutionTieScore(a), bOdds = solutionTieScore(b);
+      if(Math.abs(aOdds-bOdds) > 1e-9) return aOdds > bOdds;
+      var aFullProfit = solutionProfitIfAllotted(a), bFullProfit = solutionProfitIfAllotted(b);
+      if(Math.abs(aFullProfit-bFullProfit) > 1e-9) return aFullProfit > bFullProfit;
+      return a.count > b.count;
+    }
+
+    return a.count > b.count;
+  }
+
+  // Build all non-duplicate category assignments for one IPO. Accounts are mathematically
+  // interchangeable because capital is shared, so [Retail,sHNI] and [sHNI,Retail] are
+  // the same decision. This symmetry reduction makes exact multi-account solving much
+  // smaller while preserving the ability to use the same category on multiple accounts.
+  function buildIpoOptions(group, numAccounts, mode, points, dateIndex, totalFunds){
+    var cats = group.cands.slice();
+    var options = [];
+    var current = [];
+
+    function rec(pos){
+      if(pos === numAccounts){
+        var selected = current.slice();
+        var deltas = {};
+        var ok = true;
+        selected.forEach(function(c){
+          var ds = intervalDeltas(c, points, dateIndex);
+          ds.forEach(function(pair){
+            deltas[pair[0]] = (deltas[pair[0]] || 0) + pair[1];
+          });
+        });
+        var deltaList = Object.keys(deltas).map(function(k){ return [parseInt(k,10), deltas[k]]; });
+        // An option by itself can never exceed the total fund ceiling.
+        for(var d=0;d<deltaList.length;d++){
+          if(deltaList[d][1] > totalFunds + 1e-6){ ok=false; break; }
+        }
+        if(ok) options.push({
+          cands:selected,
+          deltas:deltaList,
+          count:selected.length,
+          profit:selected.reduce(function(sum,c){ return sum + candidateScore(c,mode); },0),
+          profitIfAllotted:selected.reduce(function(sum,c){ return sum + c.profitIfAllotted; },0),
+          odds:selected.reduce(function(sum,c){ return sum + candidateTieScore(c); },0)
+        });
+        return;
+      }
+
+      // -1 means no application on this account for this IPO.
+      rec(pos+1);
+      for(var j=0;j<cats.length;j++){
+        // Nondecreasing category index removes account-permutation duplicates.
+        if(current.length && j < current[current.length-1].__catIndex) continue;
+        var c = cats[j];
+        c.__catIndex = j;
+        current.push(c);
+        rec(pos+1);
+        current.pop();
+      }
+    }
+    rec(0);
+    options.sort(function(a,b){
+      if(Math.abs(b.profit-a.profit)>1e-9) return b.profit-a.profit;
+      if(mode === 'diversify'){
+        if(Math.abs(b.odds-a.odds)>1e-9) return b.odds-a.odds;
+        if(Math.abs(b.profitIfAllotted-a.profitIfAllotted)>1e-9) return b.profitIfAllotted-a.profitIfAllotted;
+      }
+      return b.count-a.count;
+    });
+    return options;
+  }
+
+  function greedySeed(groups, totalFunds, numAccounts, mode, points, dateIndex){
+    var usage = new Array(points.length).fill(0);
+    var chosen = [];
+    groups.forEach(function(g){
+      var opts = g.options;
+      for(var i=0;i<opts.length;i++){
+        var o = opts[i];
+        if(deltasFit(usage,o.deltas,1,totalFunds)){
+          addDeltas(usage,o.deltas,1);
+          chosen.push(o);
+          break;
+        }
+      }
+    });
+    return { options:chosen, usage:usage,
+      count:chosen.reduce(function(s,o){return s+o.count;},0),
+      profit:chosen.reduce(function(s,o){return s+o.profit;},0) };
+  }
+
+  function exactOptimizeGrouped(list, totalFunds, numAccounts, mode){
+    if(!list.length) return { results:[], selectedIds:{}, bestProfit:0, bestCount:0, exact:true };
+
+    var points = makeDatePoints(list);
+    var dateIndex = makeDateIndex(points);
+    var groupsById = {};
+    list.forEach(function(c){
+      if(!groupsById[c.ipoId]) groupsById[c.ipoId] = { ipoId:c.ipoId, cands:[] };
+      groupsById[c.ipoId].cands.push(c);
+    });
+    var groups = Object.keys(groupsById).map(function(k){ return groupsById[k]; });
+
+    groups.forEach(function(g){
+      g.options = buildIpoOptions(g,numAccounts,mode,points,dateIndex,totalFunds);
+      if(!g.options.some(function(o){ return o.count===0; })) g.options.push({cands:[],deltas:[],count:0,profit:0,profitIfAllotted:0,odds:0});
+      g.maxProfit = g.options.reduce(function(m,o){return Math.max(m,o.profit);},0);
+      g.maxCount = g.options.reduce(function(m,o){return Math.max(m,o.count);},0);
+    });
+
+    // High-value / risk-reward groups first. Ordering affects pruning only;
+    // it does not change the exact objective.
+    groups.sort(function(a,b){
+      if(Math.abs(b.maxProfit-a.maxProfit)>1e-9) return b.maxProfit-a.maxProfit;
+      if(mode === 'diversify' && Math.abs(b.maxOdds-a.maxOdds)>1e-9) return b.maxOdds-a.maxOdds;
+      return b.maxCount-a.maxCount;
+    });
+
+    var suffixProfit = new Array(groups.length+1).fill(0);
+    var suffixCount = new Array(groups.length+1).fill(0);
+    for(var q=groups.length-1;q>=0;q--){
+      suffixProfit[q] = suffixProfit[q+1] + groups[q].maxProfit;
+      suffixCount[q] = suffixCount[q+1] + groups[q].maxCount;
+    }
+
+    var usage = new Array(points.length).fill(0);
+    var chosen = [];
+
+    function greedyComplete(startIndex, curCount, curProfit){
+      var localUsage = usage.slice();
+      var localChosen = [];
+      for(var gi=startIndex;gi<groups.length;gi++){
+        var opts = groups[gi].options;
+        var picked = null;
+        for(var oi=0;oi<opts.length;oi++){
+          var o=opts[oi];
+          if(deltasFit(localUsage,o.deltas,1,totalFunds)){
+            picked=o; break;
+          }
+        }
+        if(picked){
+          addDeltas(localUsage,picked.deltas,1);
+          localChosen.push(picked);
+          curCount += picked.count;
+          curProfit += picked.profit;
+        }
+      }
+      return {count:curCount,profit:curProfit,options:localChosen};
+    }
+
+    var seed = {count:0,profit:0,options:[]};
+    // Build several deterministic seeds. Different group orderings help find a strong
+    // incumbent early without changing the exact search itself.
+    var seeds = [];
+    seeds.push(greedyComplete(0,0,0));
+    var byProfit = groups.slice().sort(function(a,b){return b.maxProfit-a.maxProfit || b.maxOdds-a.maxOdds;});
+    var savedGroups = groups;
+    groups = byProfit;
+    seeds.push(greedyComplete(0,0,0));
+    groups = savedGroups;
+    var byCount = groups.slice().sort(function(a,b){return b.maxCount-a.maxCount || b.maxProfit-a.maxProfit || b.maxOdds-a.maxOdds;});
+    groups = byCount;
+    seeds.push(greedyComplete(0,0,0));
+    groups = savedGroups;
+    seeds.forEach(function(x){ if(betterSolution(x,seed,mode)) seed=x; });
+    var best = {count:seed.count,profit:seed.profit,options:seed.options.slice()};
+
+    var nodes=0;
+
+    function remainingFeasibleUpper(index,curCount,curProfit){
+      // Cheap capacity-aware upper bound: for each remaining IPO, only credit the best
+      // option that fits by itself in the currently remaining daily capacity. This is
+      // still optimistic because it ignores conflicts between different IPOs, but is
+      // much tighter than simply summing each group's unconstrained maximum.
+      var ubProfit=curProfit, ubCount=curCount;
+      for(var gi=index;gi<groups.length;gi++){
+        var opts=groups[gi].options, bestOpt=null;
+        for(var oi=0;oi<opts.length;oi++){
+          var o=opts[oi];
+          if(deltasFit(usage,o.deltas,1,totalFunds)){
+            if(!bestOpt ||
+              o.profit>bestOpt.profit ||
+              (Math.abs(o.profit-bestOpt.profit)<1e-9 && mode==='diversify' && (
+                o.odds>bestOpt.odds ||
+                (Math.abs(o.odds-bestOpt.odds)<1e-9 && o.profitIfAllotted>bestOpt.profitIfAllotted)
+              ))
+            ) bestOpt=o;
+          }
+        }
+        if(bestOpt){ ubProfit+=bestOpt.profit; ubCount+=bestOpt.count; }
+      }
+      if(mode === 'diversify'){
+        // Equal internal scores can still improve the allotment-odds tie-breaker.
+        return ubProfit < best.profit-1e-9;
+      }
+      return ubProfit<=best.profit+1e-9;
+    }
+
+    function dfs(index,curCount,curProfit){
+      nodes++;
+      if(index===groups.length){
+        var sol={count:curCount,profit:curProfit,options:chosen.slice()};
+        if(betterSolution(sol,best,mode)) best=sol;
+        return;
+      }
+
+      // Fast optimistic bound first.
+      if(remainingFeasibleUpper(index,curCount,curProfit)) return;
+
+      var opts=groups[index].options;
+      for(var i=0;i<opts.length;i++){
+        var o=opts[i];
+        if(!deltasFit(usage,o.deltas,1,totalFunds)) continue;
+        addDeltas(usage,o.deltas,1);
+        chosen.push(o);
+        dfs(index+1,curCount+o.count,curProfit+o.profit);
+        chosen.pop();
+        addDeltas(usage,o.deltas,-1);
+      }
+    }
+
+    dfs(0,0,0);
+
+    var results=[];
+    var selectedIds={};
+    best.options.forEach(function(o){
+      if(!o || !o.cands || !o.cands.length) return;
+      o.cands.forEach(function(c,idx){
+        results.push({candidate:c,accountIndex:idx});
+        selectedIds[c.id]=true;
+      });
+    });
+
+    return {results:results,selectedIds:selectedIds,bestProfit:best.profit,bestCount:best.count,exact:true,nodes:nodes};
+  }
+
+  function optimizeSingle(list,totalFunds,mode){
+    // The grouped exact solver also handles one account, including arbitrarily many IPOs.
+    // This removes the old 20-candidate cutoff and greedy fallback.
+    return exactOptimizeGrouped(list,totalFunds,1,mode);
+  }
+
+  function optimizeMultiAccount(list,numAccounts,totalFunds,mode){
+    return exactOptimizeGrouped(list,totalFunds,numAccounts,mode);
+  }
+
+  function runOptimizer(list,totalFunds,numAccounts,mode){
+    var out = numAccounts <= 1
+      ? optimizeSingle(list,totalFunds,mode)
+      : optimizeMultiAccount(list,numAccounts,totalFunds,mode);
+    return { results:out.results, selectedIds:out.selectedIds,
+      bestProfit:out.bestProfit, bestCount:out.bestCount, exact:out.exact };
+  }
+
+  function peakCommitted(assignedList){
+    if(assignedList.length === 0) return 0;
+    var points = [];
+    assignedList.forEach(function(c){ if(points.indexOf(c.applyTs) === -1) points.push(c.applyTs); });
+    var peak = 0;
+    points.forEach(function(p){
+      var sum = 0;
+      assignedList.forEach(function(c){ if(c.applyTs <= p && p <= c.allotTs) sum += c.amount; });
+      if(sum > peak) peak = sum;
+    });
+    return peak;
+  }
+
+  function classify(){
+    var cands = buildCandidates();
+    var riskTolerance = Math.max(0, Math.min(100, parseFloat(STATE.riskTolerance) || 0));
+    var riskRejected = cands.filter(function(c){
+      return c.gmpPercent !== null && c.gmpPercent < riskTolerance;
+    });
+    var pending = cands.filter(function(c){ return !riskRejected.includes(c) && c.hasDates && !c.evaluable; });
+    var negative = cands.filter(function(c){ return !riskRejected.includes(c) && c.evaluable && c.profitIfAllotted <= 0; });
+    var eligible = cands.filter(function(c){
+      return !riskRejected.includes(c) && c.evaluable && c.profitIfAllotted > 0;
+    });
+    var noDates = cands.filter(function(c){ return !riskRejected.includes(c) && !c.hasDates; });
+
+    var numAccounts = Math.max(1, STATE.numAccounts || 1);
+    var opt = runOptimizer(eligible, STATE.totalFunds, numAccounts, STATE.mode);
+    var notSelected = eligible.filter(function(c){ return !opt.selectedIds[c.id]; });
+    var allAssigned = opt.results.map(function(r){ return r.candidate; });
+
+    return {
+      all: cands,
+      pending: pending.concat(noDates),
+      negative: negative,
+      riskRejected: riskRejected,
+      results: opt.results,
+      selectedIds: opt.selectedIds,
+      notSelected: notSelected,
+      allAssigned: allAssigned,
+      numAccounts: numAccounts,
+      optimizerExact: true,
+      optimizerNodes: opt.nodes || 0
+    };
+  }
+
+  /* ============================= RENDER: STAT STRIP ============================= */
+  function renderStats(c){
+    var peak = peakCommitted(c.allAssigned);
+    var free = STATE.totalFunds - peak;
+    var maxProfit = c.allAssigned.reduce(function(s,x){ return s + x.profitIfAllotted; }, 0);
+    var pendingCount = c.pending.length;
+
+    var cards = [
+      { label:'Total funds', value: fmtINR(STATE.totalFunds), sub: c.numAccounts>1 ? ('shared across '+c.numAccounts+' accounts') : 'as entered' },
+      { label:'Peak committed', value: fmtINR(peak), sub:'on the busiest overlapping day' },
+      { label:'Free at peak', value: fmtINR(free), sub: free<0 ? 'over-committed — reduce picks' : 'headroom left', cls: free<0?'neg':'pos' },
+      { label:'Max profit if allotted', value: fmtINR(maxProfit), sub:'sum of shares × GMP, assuming every selected application is allotted', cls:'pos' },
+      { label:'Awaiting data', value: String(pendingCount), sub:'need subscription or dates' }
+    ];
+
+    $('statStrip').innerHTML = cards.map(function(k){
+      return '<div class="stat-card">'+
+        '<div class="stat-label">'+k.label+'</div>'+
+        '<div class="stat-value '+(k.cls||'')+'">'+k.value+'</div>'+
+        '<div class="stat-sub">'+k.sub+'</div>'+
+      '</div>';
+    }).join('');
+  }
+
+  /* ============================= RENDER: TIMELINE ============================= */
+  function verdictOf(cand, c){
+    if(c.negative.indexOf(cand) !== -1) return 'skip';
+    if(c.riskRejected.indexOf(cand) !== -1) return 'skip';
+    if(c.selectedIds[cand.id]) return 'apply';
+    if(c.notSelected.indexOf(cand) !== -1) return 'skip';
+    return 'wait';
+  }
+
+  function renderTimeline(c){
+    var placeable = c.all.filter(function(x){ return x.applyTs && x.allotTs; });
+    var axisEl = $('timelineAxis'), bodyEl = $('timeline');
+
+    if(placeable.length === 0){
+      axisEl.innerHTML = '';
+      bodyEl.innerHTML = '<div class="timeline-empty">Add an IPO with an apply date and allotment date to see the fund-lock schedule.</div>';
+      return;
+    }
+
+    var minTs = Math.min.apply(null, placeable.map(function(x){ return x.applyTs; }));
+    var maxTs = Math.max.apply(null, placeable.map(function(x){ return addDays(x.allotTs, 1); }));
+    minTs = addDays(minTs, -1); maxTs = addDays(maxTs, 1);
+    var span = Math.max(maxTs - minTs, dayMs());
+
+    axisEl.innerHTML = '<span>'+fmtDate(minTs)+'</span><span>'+fmtDate((minTs+maxTs)/2)+'</span><span>'+fmtDate(maxTs)+'</span>';
+
+    var today = todayTs();
+    var todayPct = ((today - minTs) / span) * 100;
+    var showToday = todayPct >= 0 && todayPct <= 100;
+
+    bodyEl.innerHTML = placeable.map(function(cand){
+      var verdict = verdictOf(cand, c);
+      var leftPct = ((cand.applyTs - minTs) / span) * 100;
+      // bar spans through the allotment day inclusive (freed the day after)
+      var widthPct = Math.max(((addDays(cand.allotTs,1) - cand.applyTs) / span) * 100, 1.2);
+      var barClass = verdict === 'apply' ? 'v-apply' : (verdict === 'skip' ? 'v-skip' : 'v-wait');
+      var todayHtml = showToday ? '<div class="timeline-today" style="left:'+todayPct.toFixed(2)+'%;"></div>' : '';
+      var instanceCount = c.results.filter(function(r){ return r.candidate.id === cand.id; }).length;
+      var multiNote = instanceCount > 1 ? ' · ×'+instanceCount+' accounts' : '';
+      return '<div class="timeline-row">'+
+        '<div class="timeline-row-label"><b>'+escapeHtml(cand.ipoName)+'</b> · '+cand.catLabel+multiNote+'</div>'+
+        '<div class="timeline-track">'+
+          '<div class="timeline-bar '+barClass+'" style="left:'+leftPct.toFixed(2)+'%;width:'+widthPct.toFixed(2)+'%;" title="'+fmtDate(cand.applyTs)+' → freed '+fmtDate(addDays(cand.allotTs,1))+'"></div>'+
+          todayHtml+
+        '</div>'+
+      '</div>';
+    }).join('');
+  }
+
+  /* ============================= RENDER: RECOMMENDATIONS ============================= */
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(ch){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];
+    });
+  }
+
+  function otherRow(cand, reason){
+    var oddsPct = cand.fillFraction!==null ? cand.fillFraction*100 : null;
+    return '<tr>'+
+      '<td class="ipo-cell"><b>'+escapeHtml(cand.ipoName)+'</b><span>'+cand.catLabel+'</span></td>'+
+      '<td class="num">'+(cand.shares ? cand.shares.toLocaleString('en-IN') : '—')+'</td>'+
+      '<td class="num">'+fmtINR(cand.amount)+'</td>'+
+      '<td class="num">'+(cand.subscription!==null ? cand.subscription.toFixed(2)+'x' : '—')+'</td>'+
+      '<td class="num">'+(oddsPct!==null ? oddsPct.toFixed(1)+'%' : '—')+'</td>'+
+      '<td class="num">'+fmtINR(cand.profitIfAllotted)+'</td>'+
+      '<td class="reason">'+reason+'</td>'+
+    '</tr>';
+  }
+  function otherTableHead(){
+    return '<table class="rec-table"><thead><tr>'+
+      '<th>IPO / Category</th><th>Shares</th><th>Amount</th><th>Subscription</th><th>Odds</th>'+
+      '<th>Profit if allotted</th><th>Why</th>'+
+    '</tr></thead><tbody>';
+  }
+
+  function applyRow(priority, cand){
+    var oddsPct = cand.fillFraction!==null ? cand.fillFraction*100 : null;
+    return '<tr>'+
+      '<td class="priority-cell">#'+priority+'</td>'+
+      '<td class="ipo-cell"><b>'+escapeHtml(cand.ipoName)+'</b><span>'+cand.catLabel+'</span></td>'+
+      '<td class="num">'+(cand.shares ? cand.shares.toLocaleString('en-IN') : '—')+'</td>'+
+      '<td class="num">'+fmtINR(cand.amount)+'</td>'+
+      '<td class="num">'+(cand.subscription!==null ? cand.subscription.toFixed(2)+'x' : '—')+'</td>'+
+      '<td class="num">'+(oddsPct!==null ? oddsPct.toFixed(1)+'%' : '—')+'</td>'+
+      '<td class="num">'+fmtINR(cand.profitIfAllotted)+'</td>'+
+      '<td class="num">'+fmtDate(cand.applyTs)+' → '+fmtDate(cand.allotTs)+'</td>'+
+    '</tr>';
+  }
+  function applyTableHead(){
+    return '<table class="rec-table"><thead><tr>'+
+      '<th>#</th><th>IPO / Category</th><th>Shares</th><th>Amount</th><th>Subscription</th><th>Odds</th>'+
+      '<th>Profit if allotted</th><th>Apply → Allotment</th>'+
+    '</tr></thead><tbody>';
+  }
+
+  function renderRecommendations(c){
+    var el = $('recommendations');
+    var totalCands = c.all.length;
+    if(totalCands === 0){
+      el.innerHTML = '<div class="empty-note">No IPOs in your pipeline yet. Add one on the left — mark the categories you\'re actually interested in, and this list will tell you where to put your money.</div>';
+      return;
+    }
+
+    if(viewingAccount > c.numAccounts - 1) viewingAccount = 0;
+    var accountOptions = '';
+    for(var i=0;i<c.numAccounts;i++){
+      accountOptions += '<option value="'+i+'"'+(i===viewingAccount?' selected':'')+'>Account '+(i+1)+'</option>';
+    }
+    var selectorHtml = c.numAccounts > 1
+      ? '<div class="account-selector"><label for="accountSelect">Showing applications for</label>'+
+        '<select id="accountSelect">'+accountOptions+'</select></div>'
+      : '';
+    var optimizerNote = '';
+
+    // Once bidding has closed there is nothing left to decide, so the IPO comes off this
+    // Recommendations list starting the day after its bid-close date (it stays in the
+    // Pipeline and Fund-lock schedule until listing, since funds remain locked until then).
+    var todayForBidCheck = todayTs();
+    function biddingClosed(cand){
+      return cand.bidCloseTs !== null && cand.bidCloseTs !== undefined && todayForBidCheck > cand.bidCloseTs;
+    }
+
+    var accountApplyList = c.results
+      .filter(function(r){ return r.accountIndex === viewingAccount; })
+      .map(function(r){ return r.candidate; })
+      .filter(function(cand){ return !biddingClosed(cand); })
+      .sort(function(a,b){
+        if(a.applyTs !== b.applyTs) return a.applyTs - b.applyTs;
+        if((a.bidCloseTs||Infinity) !== (b.bidCloseTs||Infinity)) return (a.bidCloseTs||Infinity) - (b.bidCloseTs||Infinity);
+        return candidateScore(b, STATE.mode) - candidateScore(a, STATE.mode);
+      });
+
+    var reasonNegative = 'GMP implies zero or negative profit even if allotted — skip regardless of subscription.';
+    var reasonPending = function(cand){
+      return !cand.hasDates ? 'Add a planned apply date and allotment date to schedule this.' : 'Add current subscription numbers to evaluate.';
+    };
+    var reasonNotSelected = STATE.mode === 'diversify'
+      ? 'There are higher chances of earning from another application rather than missing this one.'
+      : 'Another IPO gives you more profit than this one with the funds you have.';
+
+    var applyTitle = c.numAccounts > 1 ? ('Apply — Account '+(viewingAccount+1)) : 'Apply';
+    var sections = [];
+
+    sections.push(
+      '<div class="rec-group">'+
+        '<div class="rec-group-title"><span class="pill apply">'+applyTitle+'</span><span class="n">'+accountApplyList.length+' application(s)</span></div>'+
+        (accountApplyList.length
+          ? '<div class="rec-table-wrap">'+applyTableHead() + accountApplyList.map(function(cand,idx){ return applyRow(idx+1, cand); }).join('') + '</tbody></table></div>'
+          : '<div class="empty-note">Nothing assigned to this account yet.</div>')+
+      '</div>'
+    );
+
+    var reasonRisk = function(cand){
+      return 'GMP is '+(cand.gmpPercent !== null ? cand.gmpPercent.toFixed(1)+'%' : 'below the threshold')+' — below your '+STATE.riskTolerance+'% risk tolerance.';
+    };
+    var otherGroups = [
+      { key:'wait', title:'Wait — need more data', list: c.pending.filter(function(cand){ return !biddingClosed(cand); }), reason: reasonPending },
+      { key:'skip', title:'Skip', list: c.notSelected.concat(c.negative, c.riskRejected).filter(function(cand){ return !biddingClosed(cand); }), reason: function(cand){
+          if(c.negative.indexOf(cand) !== -1) return reasonNegative;
+          if(c.riskRejected.indexOf(cand) !== -1) return reasonRisk(cand);
+          return reasonNotSelected;
+        } }
+    ];
+    otherGroups.forEach(function(g){
+      g.list.sort(function(a,b){
+        var ae = candidateScore(a, STATE.mode), be = candidateScore(b, STATE.mode);
+        if(Math.abs(be-ae)>1e-9) return be-ae;
+        if(STATE.mode === 'diversify'){
+          var ao = candidateTieScore(a), bo = candidateTieScore(b);
+          if(Math.abs(bo-ao)>1e-9) return bo-ao;
+        }
+        return (a.amount||0) - (b.amount||0);
+      });
+      if(g.list.length === 0) return;
+      var rows = g.list.map(function(cand){ return otherRow(cand, g.reason(cand)); }).join('');
+      sections.push(
+        '<div class="rec-group">'+
+          '<div class="rec-group-title"><span class="pill '+g.key+'">'+g.title+'</span><span class="n">'+g.list.length+' application(s)</span></div>'+
+          '<div class="rec-table-wrap">'+otherTableHead() + rows + '</tbody></table></div>'+
+        '</div>'
+      );
+    });
+
+    el.innerHTML = selectorHtml + optimizerNote + sections.join('');
+
+    var sel = $('accountSelect');
+    if(sel){
+      sel.addEventListener('change', function(){
+        viewingAccount = parseInt(sel.value, 10) || 0;
+        var c2 = classify();
+        renderRecommendations(c2);
+      });
+    }
+  }
+
+  /* ============================= RENDER: PIPELINE LIST ============================= */
+  function renderPipeline(){
+    var el = $('pipelineList');
+    $('pipelineCount').textContent = String(STATE.ipos.length);
+    if(STATE.ipos.length === 0){
+      el.innerHTML = '<div class="empty-note">Nothing added yet.</div>';
+      return;
+    }
+    el.innerHTML = STATE.ipos.map(function(ipo){
+      var gmpPct = ipo.price>0 ? (ipo.gmp/ipo.price*100) : null;
+      var badges = CATS.map(function(pair){
+        var key=pair[0], label=pair[1], c=ipo.cats[key];
+        var on = c && c.interested;
+        var amt = on ? (c.shares||0)*ipo.price : 0;
+        var sub = on ? (c.sub!=='' && c.sub!==null ? parseFloat(c.sub).toFixed(1)+'x' : 'sub: pending') : 'not applying';
+        return '<span class="pipe-badge'+(on?' on':'')+'">'+label+' · '+(on?(c.shares||0)+' sh · '+fmtINR(amt)+' · '+sub:'—')+'</span>';
+      }).join('');
+      return '<div class="pipe-card">'+
+        '<div class="pipe-card-top">'+
+          '<div><div class="pipe-name">'+escapeHtml(ipo.name)+'</div>'+
+          '<div class="pipe-meta">₹'+ipo.price+' · GMP '+(gmpPct!==null?fmtPct(gmpPct):'—')+' · closes '+fmtDate(toTs(ipo.bidClose))+' · allotment '+fmtDate(toTs(ipo.allotDate))+' · lists '+fmtDate(toTs(ipo.listDate))+'</div></div>'+
+        '</div>'+
+        '<div class="pipe-badges">'+badges+'</div>'+
+        '<div class="pipe-actions">'+
+          '<button class="btn btn-small" data-edit="'+ipo.id+'">Edit</button>'+
+          '<button class="btn btn-small btn-ghost btn-danger" data-remove="'+ipo.id+'">Remove</button>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+
+    el.querySelectorAll('[data-edit]').forEach(function(btn){
+      btn.addEventListener('click', function(){ loadIntoForm(btn.getAttribute('data-edit')); });
+    });
+    el.querySelectorAll('[data-remove]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var id = btn.getAttribute('data-remove');
+        STATE.ipos = STATE.ipos.filter(function(i){ return i.id !== id; });
+        render();
+      });
+    });
+  }
+
+  /* ============================= AUTO-PURGE PAST-LISTING IPOS ============================= */
+  // The day immediately after an IPO's listing date, it is no longer relevant to a
+  // fund-scheduling decision, so it is dropped from the pipeline automatically.
+  function pruneListedIpos(){
+    var t = todayTs();
+    STATE.ipos = STATE.ipos.filter(function(ipo){
+      var listTs = toTs(ipo.listDate);
+      if(!listTs) return true; // legacy entries without a listing date are left untouched
+      return t <= listTs;
+    });
+  }
+
+  /* ============================= FILE SYNC (File System Access API) ============================= */
+  // Lets the tool read from and write to a real .json file on disk, so the pipeline
+  // survives closing the tab/browser. Falls back gracefully if the browser doesn't support it.
+  var FS_SUPPORTED = ('showSaveFilePicker' in window) && ('showOpenFilePicker' in window) && ('indexedDB' in window);
+
+  function openHandleDB(){
+    return new Promise(function(resolve, reject){
+      var req = indexedDB.open('ipoFundDeskDB', 1);
+      req.onupgradeneeded = function(){ req.result.createObjectStore('handles'); };
+      req.onsuccess = function(){ resolve(req.result); };
+      req.onerror = function(){ reject(req.error); };
+    });
+  }
+  function idbGet(key){
+    return openHandleDB().then(function(db){
+      return new Promise(function(resolve, reject){
+        var tx = db.transaction('handles','readonly');
+        var req = tx.objectStore('handles').get(key);
+        req.onsuccess = function(){ resolve(req.result || null); };
+        req.onerror = function(){ reject(req.error); };
+      });
+    });
+  }
+  function idbSet(key, value){
+    return openHandleDB().then(function(db){
+      return new Promise(function(resolve, reject){
+        var tx = db.transaction('handles','readwrite');
+        tx.objectStore('handles').put(value, key);
+        tx.oncomplete = function(){ resolve(); };
+        tx.onerror = function(){ reject(tx.error); };
+      });
+    });
+  }
+  function idbDelete(key){
+    return openHandleDB().then(function(db){
+      return new Promise(function(resolve, reject){
+        var tx = db.transaction('handles','readwrite');
+        tx.objectStore('handles').delete(key);
+        tx.oncomplete = function(){ resolve(); };
+        tx.onerror = function(){ reject(tx.error); };
+      });
+    });
+  }
+
+  function updateSyncUI(){
+    var dot = $('syncDot'), text = $('syncText');
+    var btnNew = $('btnNewFile'), btnOpen = $('btnOpenFile'), btnReconnect = $('btnReconnectFile'), btnDisconnect = $('btnDisconnectFile');
+    if(!FS_SUPPORTED){
+      dot.className = 'sync-dot off';
+      text.textContent = 'Auto-save to disk not supported in this browser — use Export/Import';
+      btnNew.style.display = 'none'; btnOpen.style.display = 'none';
+      btnReconnect.style.display = 'none'; btnDisconnect.style.display = 'none';
+      return;
+    }
+    if(fileSyncStatus === 'connected'){
+      dot.className = 'sync-dot ok';
+      text.textContent = 'Synced to ' + (fileHandle && fileHandle.name ? fileHandle.name : 'data file');
+      btnNew.style.display = 'none'; btnOpen.style.display = 'none'; btnReconnect.style.display = 'none';
+      btnDisconnect.style.display = 'inline-block';
+    } else if(fileSyncStatus === 'needs-permission'){
+      dot.className = 'sync-dot warn';
+      text.textContent = 'Reconnect to resume autosave';
+      btnNew.style.display = 'none'; btnOpen.style.display = 'none';
+      btnReconnect.style.display = 'inline-block'; btnDisconnect.style.display = 'inline-block';
+    } else if(fileSyncStatus === 'error'){
+      dot.className = 'sync-dot err';
+      text.textContent = 'Save failed — file may have moved or been deleted';
+      btnReconnect.style.display = 'inline-block'; btnDisconnect.style.display = 'inline-block';
+      btnNew.style.display = 'none'; btnOpen.style.display = 'none';
+    } else {
+      dot.className = 'sync-dot off';
+      text.textContent = 'Not connected — data will be lost on tab close';
+      btnNew.style.display = 'inline-block'; btnOpen.style.display = 'inline-block';
+      btnReconnect.style.display = 'none'; btnDisconnect.style.display = 'none';
+    }
+  }
+
+  function readFromFile(){
+    return fileHandle.getFile().then(function(file){ return file.text(); }).then(function(text){
+      if(!text || !text.trim()) return; // freshly created empty file — nothing to load yet
+      var data;
+      try{ data = JSON.parse(text); } catch(e){ throw new Error('not valid JSON'); }
+      if(!data || !Array.isArray(data.ipos)) throw new Error('unexpected shape');
+      STATE.totalFunds = data.totalFunds || 0;
+      STATE.numAccounts = Math.max(1, parseInt(data.numAccounts,10) || 1);
+      STATE.riskTolerance = Math.max(0, Math.min(100, parseFloat(data.riskTolerance) || 0));
+      STATE.mode = data.mode === 'diversify' ? 'diversify' : 'profit';
+      STATE.ipos = data.ipos;
+      $('totalFunds').value = STATE.totalFunds;
+      $('numAccounts').value = STATE.numAccounts;
+      $('riskTolerance').value = STATE.riskTolerance;
+      viewingAccount = 0;
+      document.querySelectorAll('.toggle-btn').forEach(function(b){
+        b.classList.toggle('active', b.getAttribute('data-mode') === STATE.mode);
+      });
+      resetForm();
+    });
+  }
+
+  function writeToFile(){
+    if(!fileHandle) return;
+    fileHandle.createWritable().then(function(writable){
+      return writable.write(JSON.stringify(STATE, null, 2)).then(function(){ return writable.close(); });
+    }).then(function(){
+      fileSyncStatus = 'connected';
+      updateSyncUI();
+    }).catch(function(err){
+      console.error('Autosave write failed', err);
+      fileSyncStatus = 'error';
+      updateSyncUI();
+    });
+  }
+
+  function scheduleSave(){
+    if(!fileHandle || fileSyncStatus !== 'connected') return;
+    clearTimeout(saveDebounceTimer);
+    saveDebounceTimer = setTimeout(writeToFile, 500);
+  }
+
+  function connectNewFile(){
+    if(!FS_SUPPORTED){ alert('This browser does not support saving directly to a file. Use Export/Import instead.'); return; }
+    window.showSaveFilePicker({
+      suggestedName: 'ipo-fund-desk-data.json',
+      types: [{ description:'JSON', accept:{ 'application/json':['.json'] } }]
+    }).then(function(handle){
+      fileHandle = handle;
+      return idbSet('dataFile', handle);
+    }).then(function(){
+      fileSyncStatus = 'connected';
+      updateSyncUI();
+      writeToFile(); // save current pipeline (even if empty) into the newly chosen file right away
+    }).catch(function(err){
+      if(err && err.name !== 'AbortError') console.error(err);
+    });
+  }
+
+  function connectExistingFile(){
+    if(!FS_SUPPORTED){ alert('This browser does not support opening a file directly. Use Import instead.'); return; }
+    if(STATE.ipos.length > 0 && !confirm('Opening a different file will replace your current pipeline in this tab. Continue?')) return;
+    window.showOpenFilePicker({
+      types: [{ description:'JSON', accept:{ 'application/json':['.json'] } }],
+      multiple: false
+    }).then(function(handles){
+      fileHandle = handles[0];
+      return idbSet('dataFile', fileHandle);
+    }).then(function(){
+      fileSyncStatus = 'connected';
+      return readFromFile();
+    }).then(function(){
+      updateSyncUI();
+      render();
+    }).catch(function(err){
+      if(err && err.name !== 'AbortError'){
+        console.error(err);
+        fileSyncStatus = 'error';
+        updateSyncUI();
+        alert('Could not read that file — make sure it is a JSON file saved by this tool.');
+      }
+    });
+  }
+
+  function reconnectWithPermission(){
+    if(!fileHandle){ fileSyncStatus = 'disconnected'; updateSyncUI(); return; }
+    fileHandle.requestPermission({ mode:'readwrite' }).then(function(perm){
+      if(perm === 'granted'){
+        fileSyncStatus = 'connected';
+        return readFromFile().then(function(){ updateSyncUI(); render(); });
+      } else {
+        fileSyncStatus = 'needs-permission';
+        updateSyncUI();
+      }
+    }).catch(function(err){
+      console.error('Reconnect failed', err);
+      fileSyncStatus = 'error';
+      updateSyncUI();
+    });
+  }
+
+  function disconnectFile(){
+    if(!confirm('Disconnect from this data file? Your pipeline stays visible for now, but nothing will autosave until you connect again.')) return;
+    fileHandle = null;
+    fileSyncStatus = 'disconnected';
+    idbDelete('dataFile').then(updateSyncUI).catch(updateSyncUI);
+  }
+
+  function tryReconnectOnLoad(){
+    if(!FS_SUPPORTED){ updateSyncUI(); return; }
+    idbGet('dataFile').then(function(handle){
+      if(!handle){ fileSyncStatus = 'disconnected'; updateSyncUI(); return; }
+      fileHandle = handle;
+      return handle.queryPermission({ mode:'readwrite' }).then(function(perm){
+        if(perm === 'granted'){
+          fileSyncStatus = 'connected';
+          return readFromFile().then(function(){ updateSyncUI(); render(); });
+        } else {
+          fileSyncStatus = 'needs-permission';
+          updateSyncUI();
+        }
+      });
+    }).catch(function(err){
+      console.error('Reconnect check failed', err);
+      fileSyncStatus = 'disconnected';
+      updateSyncUI();
+    });
+  }
+
+  /* ============================= MASTER RENDER ============================= */
+  function render(){
+    pruneListedIpos();
+    var c = classify();
+    renderStats(c);
+    renderTimeline(c);
+    renderRecommendations(c);
+    renderPipeline();
+    scheduleSave();
+  }
+
+  /* ============================= FORM HANDLING ============================= */
+  function updateAmountPreview(key){
+    var el = $(key+'_amtPreview');
+    if(!el) return;
+    var price = parseFloat($('ipoPrice').value) || 0;
+    var shares = parseFloat($(key+'_shares').value) || 0;
+    el.textContent = shares>0 ? (shares.toLocaleString('en-IN')+' sh × ₹'+price+' = '+fmtINR(shares*price)) : 'Enter shares to see amount';
+  }
+
+  function readCat(prefix){
+    return {
+      interested: $(prefix+'_int').checked,
+      shares: parseFloat($(prefix+'_shares').value) || 0,
+      sub: $(prefix+'_sub').value === '' ? null : $(prefix+'_sub').value
+    };
+  }
+
+  function resetForm(){
+    $('ipoForm').reset();
+    $('editingId').value = '';
+    $('submitBtn').textContent = 'Add IPO to pipeline';
+    $('cancelEditBtn').style.display = 'none';
+    CATS.forEach(function(pair){ updateAmountPreview(pair[0]); });
+  }
+
+  function loadIntoForm(id){
+    var ipo = STATE.ipos.filter(function(i){ return i.id===id; })[0];
+    if(!ipo) return;
+    $('editingId').value = ipo.id;
+    $('ipoName').value = ipo.name;
+    $('ipoPrice').value = ipo.price;
+    $('ipoGmp').value = ipo.gmp;
+    $('bidOpen').value = ipo.bidOpen || '';
+    $('bidClose').value = ipo.bidClose || '';
+    $('applyDate').value = ipo.applyDate || '';
+    $('allotDate').value = ipo.allotDate || '';
+    $('listDate').value = ipo.listDate || '';
+    CATS.forEach(function(pair){
+      var key = pair[0], c = ipo.cats[key] || {};
+      $(key+'_int').checked = !!c.interested;
+      $(key+'_shares').value = c.shares || '';
+      $(key+'_sub').value = (c.sub===null || c.sub===undefined) ? '' : c.sub;
+      updateAmountPreview(key);
+    });
+    $('submitBtn').textContent = 'Update IPO';
+    $('cancelEditBtn').style.display = 'block';
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+
+  $('ipoForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    var name = $('ipoName').value.trim();
+    var price = parseFloat($('ipoPrice').value);
+    if(!name || !price || price<=0){ alert('Please enter an IPO name and a valid price per share.'); return; }
+    if(!$('listDate').value){ alert('Listing date is required — it is used to automatically retire this IPO from your pipeline once it has listed.'); return; }
+
+    var cats = {};
+    var anyInterested = false;
+    var missingShares = false;
+    CATS.forEach(function(pair){
+      var key = pair[0];
+      var c = readCat(key);
+      if(c.interested){
+        anyInterested = true;
+        if(!c.shares) missingShares = true;
+      }
+      cats[key] = c;
+    });
+    if(!anyInterested){ alert('Mark at least one category (Retail / sHNI / bHNI) as interested.'); return; }
+    if(missingShares){ alert('Enter the number of shares for every category marked as interested.'); return; }
+
+    var ipoObj = {
+      id: $('editingId').value || uid(),
+      name: name,
+      price: price,
+      gmp: parseFloat($('ipoGmp').value) || 0,
+      bidOpen: $('bidOpen').value,
+      bidClose: $('bidClose').value,
+      applyDate: $('applyDate').value || $('bidClose').value || $('bidOpen').value,
+      allotDate: $('allotDate').value,
+      listDate: $('listDate').value,
+      cats: cats
+    };
+
+    var editingId = $('editingId').value;
+    if(editingId){
+      var idx = STATE.ipos.findIndex(function(i){ return i.id === editingId; });
+      if(idx !== -1) STATE.ipos[idx] = ipoObj;
+    } else {
+      STATE.ipos.push(ipoObj);
+    }
+
+    resetForm();
+    render();
+  });
+
+  $('cancelEditBtn').addEventListener('click', resetForm);
+
+  // auto-fill apply date from bid-close if the user hasn't set one yet
+  $('bidClose').addEventListener('change', function(){
+    if(!$('applyDate').value) $('applyDate').value = $('bidClose').value;
+  });
+
+  // live amount preview: shares x price, recalculated as either changes
+  $('ipoPrice').addEventListener('input', function(){
+    CATS.forEach(function(pair){ updateAmountPreview(pair[0]); });
+  });
+  CATS.forEach(function(pair){
+    $(pair[0]+'_shares').addEventListener('input', function(){ updateAmountPreview(pair[0]); });
+  });
+
+  /* ============================= TOP-LEVEL CONTROLS ============================= */
+  $('totalFunds').addEventListener('input', function(){
+    STATE.totalFunds = parseFloat(this.value) || 0;
+    render();
+  });
+
+  $('numAccounts').addEventListener('input', function(){
+    STATE.numAccounts = Math.max(1, parseInt(this.value, 10) || 1);
+    if(viewingAccount > STATE.numAccounts - 1) viewingAccount = 0;
+    render();
+  });
+
+  $('riskTolerance').addEventListener('input', function(){
+    var value = parseFloat(this.value);
+    if(!isFinite(value)) value = 0;
+    value = Math.max(0, Math.min(100, value));
+    this.value = value;
+    STATE.riskTolerance = value;
+    render();
+  });
+
+  document.querySelectorAll('.toggle-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.toggle-btn').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      STATE.mode = btn.getAttribute('data-mode');
+      render();
+    });
+  });
+
+  $('btnClear').addEventListener('click', function(){
+    if(STATE.ipos.length===0) return;
+    if(confirm('Remove all IPOs from the pipeline? This cannot be undone.')){
+      STATE.ipos = [];
+      resetForm();
+      render();
+    }
+  });
+
+  $('btnExport').addEventListener('click', function(){
+    var blob = new Blob([JSON.stringify(STATE, null, 2)], {type:'application/json'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'ipo-fund-desk-data.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  $('importFile').addEventListener('change', function(e){
+    var file = e.target.files[0];
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      try{
+        var data = JSON.parse(reader.result);
+        if(!data || !Array.isArray(data.ipos)) throw new Error('bad shape');
+        STATE.totalFunds = data.totalFunds || 0;
+        STATE.numAccounts = Math.max(1, parseInt(data.numAccounts,10) || 1);
+        STATE.riskTolerance = Math.max(0, Math.min(100, parseFloat(data.riskTolerance) || 0));
+        STATE.mode = data.mode === 'diversify' ? 'diversify' : 'profit';
+        STATE.ipos = data.ipos;
+        $('totalFunds').value = STATE.totalFunds;
+        $('numAccounts').value = STATE.numAccounts;
+        $('riskTolerance').value = STATE.riskTolerance;
+        viewingAccount = 0;
+        document.querySelectorAll('.toggle-btn').forEach(function(b){
+          b.classList.toggle('active', b.getAttribute('data-mode')===STATE.mode);
+        });
+        resetForm();
+        render();
+      }catch(err){
+        alert('Could not read that file — make sure it is a JSON export from this tool.');
+      }
+      $('importFile').value = '';
+    };
+    reader.readAsText(file);
+  });
+
+  /* ============================= SAMPLE DATA ============================= */
+  $('btnSample').addEventListener('click', function(){
+    if(STATE.ipos.length > 0 && !confirm('This will replace your current pipeline with sample data. Continue?')) return;
+    var t = todayTs();
+    STATE.totalFunds = 1500000;
+    STATE.numAccounts = 2;
+    STATE.riskTolerance = 0;
+    STATE.mode = 'profit';
+    viewingAccount = 0;
+    $('totalFunds').value = 1500000;
+    $('numAccounts').value = 2;
+    $('riskTolerance').value = 0;
+    document.querySelectorAll('.toggle-btn').forEach(function(b){
+      b.classList.toggle('active', b.getAttribute('data-mode') === 'profit');
+    });
+
+    // Deliberately overlapping eight-IPO example: three apply on day 1, four on day 2,
+    // and one on day 3. Every IPO has Retail and sHNI enabled; the two accounts share
+    // one common fund pool, and each account may choose only one category per IPO.
+    var sample = [
+      {name:'Aster Mobility IPO',price:100,gmp:28,open:0,apply:0,allot:3,list:6,r:{sh:1000,sub:'4.0'},s:{sh:2000,sub:'5.0'}},
+      {name:'Bharat Grid Systems',price:200,gmp:34,open:0,apply:0,allot:3,list:6,r:{sh:500,sub:'3.0'},s:{sh:1000,sub:'4.0'}},
+      {name:'Crescent Consumer',price:150,gmp:24,open:0,apply:0,allot:3,list:6,r:{sh:1000,sub:'2.5'},s:{sh:2000,sub:'3.5'}},
+      {name:'Delta Renewables',price:120,gmp:22,open:1,apply:1,allot:4,list:7,r:{sh:1000,sub:'2.0'},s:{sh:2000,sub:'2.8'}},
+      {name:'Everest Fintech',price:250,gmp:42,open:1,apply:1,allot:4,list:7,r:{sh:400,sub:'3.5'},s:{sh:800,sub:'4.5'}},
+      {name:'Falcon Healthcare',price:180,gmp:30,open:1,apply:1,allot:4,list:7,r:{sh:500,sub:'2.2'},s:{sh:1000,sub:'3.2'}},
+      {name:'Granite Logistics',price:300,gmp:55,open:1,apply:1,allot:4,list:7,r:{sh:300,sub:'4.2'},s:{sh:600,sub:'5.2'}},
+      {name:'Helios Defence Tech',price:220,gmp:38,open:2,apply:2,allot:5,list:8,r:{sh:500,sub:'2.8'},s:{sh:1000,sub:'3.8'}}
+    ];
+
+    STATE.ipos = sample.map(function(x){
+      return {
+        id: uid(), name:x.name, price:x.price, gmp:x.gmp,
+        bidOpen:tsToInputVal(addDays(t,x.open)), bidClose:tsToInputVal(addDays(t,x.apply)),
+        applyDate:tsToInputVal(addDays(t,x.apply)), allotDate:tsToInputVal(addDays(t,x.allot)),
+        listDate:tsToInputVal(addDays(t,x.list)),
+        cats:{
+          retail:{interested:true,shares:x.r.sh,sub:x.r.sub},
+          shni:{interested:true,shares:x.s.sh,sub:x.s.sub},
+          bhni:{interested:false,shares:0,sub:null}
+        }
+      };
+    });
+    resetForm();
+    render();
+  });
+
+  /* ============================= INIT ============================= */
+  $('btnNewFile').addEventListener('click', connectNewFile);
+  $('btnOpenFile').addEventListener('click', connectExistingFile);
+  $('btnReconnectFile').addEventListener('click', reconnectWithPermission);
+  $('btnDisconnectFile').addEventListener('click', disconnectFile);
+
+  render();
+  updateSyncUI();
+  tryReconnectOnLoad();
+
+})();
+</script>
+</body>
+</html>
